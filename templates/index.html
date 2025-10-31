@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Tasks - Task Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">TaskManager</div>
+    <div class="nav-right">
+      <span class="user">Hi, {{ username }}</span>
+      <a class="btn small" href="{{ url_for('add_task') }}">Add Task</a>
+      <a class="btn small" href="{{ url_for('logout') }}">Logout</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="messages">
+          {% for category, msg in messages %}
+            <li class="{{ category }}">{{ msg }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <div class="filters">
+      <a href="{{ url_for('index', status='all') }}" class="filter {% if filter=='all' %}active{% endif %}">All</a>
+      <a href="{{ url_for('index', status='pending') }}" class="filter {% if filter=='pending' %}active{% endif %}">Pending</a>
+      <a href="{{ url_for('index', status='completed') }}" class="filter {% if filter=='completed' %}active{% endif %}">Completed</a>
+    </div>
+
+    {% if tasks|length == 0 %}
+      <div class="empty">No tasks yet. <a href="{{ url_for('add_task') }}">Create one</a>.</div>
+    {% else %}
+      <div class="task-list">
+        {% for t in tasks %}
+          <div class="task-card {% if t['status']=='completed' %}done{% endif %}">
+            <div class="task-top">
+              <h3>{{ t['title'] }}</h3>
+              <small>{{ t['created_at'] }}</small>
+            </div>
+            <p>{{ t['description'] }}</p>
+            <div class="task-actions">
+              <form action="{{ url_for('complete_task', task_id=t['id']) }}" method="post" style="display:inline;">
+                {% if t['status'] != 'completed' %}
+                  <button class="btn small" type="submit">Mark Completed</button>
+                {% endif %}
+              </form>
+              <a class="btn small" href="{{ url_for('edit_task', task_id=t['id']) }}">Edit</a>
+              <form action="{{ url_for('delete_task', task_id=t['id']) }}" method="post" style="display:inline;">
+                <button class="btn small danger" type="submit">Delete</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

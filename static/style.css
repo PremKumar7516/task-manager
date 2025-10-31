@@ -1,0 +1,52 @@
+:root{
+  --bg:#f6f8fb;
+  --card:#fff;
+  --muted:#6b7280;
+  --accent:#4f46e5;
+  --danger:#ef4444;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background:var(--bg);
+  color:#111827;
+  line-height:1.4;
+  padding-bottom:40px;
+}
+.topnav{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 20px;
+  background:linear-gradient(90deg, #ffffffcc, #f8fafc);
+  box-shadow:0 1px 4px rgba(16,24,40,0.04);
+}
+.brand{font-weight:700}
+.nav-right{display:flex;gap:8px;align-items:center}
+.container{max-width:900px;margin:20px auto;padding:16px}
+.auth{max-width:420px;margin:60px auto;padding:24px;background:var(--card);border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.06)}
+.auth h2{text-align:center;margin-bottom:12px}
+input, textarea, select{
+  width:100%;padding:10px;border-radius:8px;border:1px solid #e6e9ee;margin-bottom:10px;font-size:15px;
+}
+button{background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:8px;cursor:pointer}
+button.danger{background:var(--danger)}
+.btn{background:#eef2ff;color:var(--accent);padding:6px 10px;border-radius:8px;text-decoration:none;border:1px solid #ecf0ff}
+.btn.small{padding:6px 8px;font-size:13px}
+.messages{list-style:none;padding:0;margin:0 0 12px 0}
+.messages li{padding:8px;border-radius:8px;margin-bottom:8px}
+.messages li.success{background:#ecfccb;color:#365314}
+.messages li.info{background:#e6f2ff;color:#0c4a6e}
+.messages li.danger{background:#fee2e2;color:#7f1d1d}
+
+.filters{display:flex;gap:10px;margin-bottom:12px}
+.filter{padding:8px 12px;background:var(--card);border-radius:8px;text-decoration:none;color:var(--muted);border:1px solid #eef2ff}
+.filter.active{border:1px solid var(--accent);color:var(--accent)}
+.empty{padding:24px;background:var(--card);border-radius:12px;text-align:center}
+.task-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.task-card{background:var(--card);padding:12px;border-radius:12px;box-shadow:0 6px 16px rgba(2,6,23,0.04)}
+.task-card.done{opacity:0.7;text-decoration:line-through}
+.task-top{display:flex;justify-content:space-between;align-items:center}
+.task-actions{display:flex;gap:8px;margin-top:8px}
+@media(max-width:600px){.container{padding:12px}.topnav{padding:12px}}

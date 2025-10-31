@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% if task %}Edit Task{% else %}Add Task{% endif %} - Task Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">TaskManager</div>
+    <div class="nav-right">
+      <a class="btn small" href="{{ url_for('index') }}">Back</a>
+    </div>
+  </nav>
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="messages">
+          {% for category, msg in messages %}
+            <li class="{{ category }}">{{ msg }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <h2>{% if task %}Edit{% else %}Add{% endif %} Task</h2>
+    <form method="post">
+      <input name="title" placeholder="Title" required value="{{ task['title'] if task else '' }}">
+      <textarea name="description" placeholder="Description (optional)">{{ task['description'] if task else '' }}</textarea>
+
+      {% if task %}
+        <label for="status">Status</label>
+        <select name="status" id="status">
+          <option value="pending" {% if task['status']=='pending' %}selected{% endif %}>Pending</option>
+          <option value="completed" {% if task['status']=='completed' %}selected{% endif %}>Completed</option>
+        </select>
+      {% endif %}
+
+      <button type="submit">{% if task %}Update{% else %}Add{% endif %}</button>
+    </form>
+  </div>
+</body>
+</html>
