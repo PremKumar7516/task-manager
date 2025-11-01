@@ -7,6 +7,7 @@ from functools import wraps
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "secret_key")
+app.secret_key = "supersecretkey"
 
 # --------------------------------------------------------------------
 # ✅ DATABASE SETUP
@@ -90,9 +91,7 @@ def login():
         password = request.form["password"]
 
         db = get_db()
-        user = db.execute(
-            "SELECT * FROM users WHERE username = ?", (username,)
-        ).fetchone()
+        user = db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
 
         if user and check_password_hash(user["password"], password):
             session["user_id"] = user["id"]
@@ -112,13 +111,19 @@ def logout():
 def dashboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
-
+    print("DEBUG: user_id =", session["user_id"])
     db = get_db()
-    tasks = db.execute(
-        "SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC",
-        (session["user_id"],),
-    ).fetchall()
-    return render_template("dashboard.html", tasks=tasks)
+    user_id = session["user_id"]
+    
+    # Fetch username
+    user = db.execute("SELECT username FROM users WHERE id = ?", (user_id,)).fetchone()
+    username = user["username"] if user else "User"
+    
+    # Fetch tasks
+    tasks = db.execute("SELECT * FROM tasks WHERE user_id = ?", (user_id,)).fetchall()
+    
+    return render_template("dashboard.html", username=username, tasks=tasks)
+
 
 
 @app.route("/add", methods=["POST"])
