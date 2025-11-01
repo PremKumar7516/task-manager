@@ -1,25 +1,34 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, g, render_template, request, redirect, url_for, session, flash, jsonify
+
 import sqlite3
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 
-app = Flask(__name__)
-app.secret_key = "your_secret_key_here"
+app = Flask(__name__, static_folder="static", template_folder="templates")
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "secret_key")
 
 # --------------------------------------------------------------------
 # ✅ DATABASE SETUP
 # --------------------------------------------------------------------
-DB_PATH = os.path.join(os.path.dirname(__file__), "database.db")
+
+# ✅ Absolute path for consistent database location
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+DB_PATH = os.path.join(BASE_DIR, "database.db")
 
 def get_db():
-    """Connects to SQLite DB using an absolute path."""
-    db = sqlite3.connect(DB_PATH, check_same_thread=False)
-    db.row_factory = sqlite3.Row
-    return db
+    if 'db' not in g:
+        g.db = sqlite3.connect(DB_PATH, check_same_thread=False)
+        g.db.row_factory = sqlite3.Row
+    return g.db
 
+@app.teardown_appcontext
+def close_db(e=None):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
 
 def init_db():
-    """Creates tables if they do not exist."""
     db = get_db()
     db.executescript("""
     CREATE TABLE IF NOT EXISTS users (
@@ -40,7 +49,8 @@ def init_db():
     );
     """)
     db.commit()
-    print("✅ init_db() executed, database tables ready.")
+    print("✅ Database initialized at:", DB_PATH)
+
 
 
 # --------------------------------------------------------------------
@@ -161,8 +171,10 @@ def delete_task(task_id):
 # ✅ MAIN ENTRY POINT
 # --------------------------------------------------------------------
 if __name__ == "__main__":
-    # Ensure database tables exist before running
     with app.app_context():
         init_db()
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
+else:
+    # Also initialize when running on Render
+    with app.app_context():
+        init_db()
