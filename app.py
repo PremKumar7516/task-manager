@@ -6,6 +6,11 @@ from functools import wraps
 
 # Config
 app = Flask(__name__, static_folder="static", template_folder="templates")
+
+# Use instance folder path (create if missing)
+INSTANCE_FOLDER = os.path.join(app.root_path, "instance")
+os.makedirs(INSTANCE_FOLDER, exist_ok=True)
+
 app.config['DATABASE'] = os.path.join(app.root_path, "instance", "taskmanager.db")
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "dev_secret_key_change_this")
 
