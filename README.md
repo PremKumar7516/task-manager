@@ -14,6 +14,7 @@ A simple Flask-based Task Manager web app where users can register, log in, and 
 ---
 
 ## 🏗️ Project Structure
+```bash
 task-manager/
 ├── app.py
 ├── requirements.txt
@@ -27,6 +28,7 @@ task-manager/
 │ └── style.css
 └── instance/
 └── taskmanager.db
+```
 
 ---
 
