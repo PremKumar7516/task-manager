@@ -1,26 +1,2 @@
-# Python cache
-__pycache__/
-*.pyc
-
-# Virtual environments
-venv/
-env/
-ENV/
-
-# SQLite database and instance folder
-instance/
-*.db
-
-# Flask logs
-*.log
-
-# IDE / editor folders
-.vscode/
-.idea/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Node modules (if frontend is added later)
-node_modules/
+# Created by venv; see https://docs.python.org/3/library/venv.html
+*
