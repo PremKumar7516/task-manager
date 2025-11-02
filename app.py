@@ -4,32 +4,30 @@ from flask import Flask, g, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 
-
-# Config
+# --- Config ---
 app = Flask(__name__, static_folder="static", template_folder="templates")
-app.config['DATABASE'] = os.path.join(app.root_path, "instance", "taskmanager.db")
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "dev_secret_key_change_this")
 
-# Ensure instance folder exists
-os.makedirs(os.path.dirname(app.config['DATABASE']), exist_ok=True)
+# Set database path (use a relative path that works on Render too)
+db_path = os.path.join(app.root_path, "instance", "taskmanager.db")
+os.makedirs(os.path.dirname(db_path), exist_ok=True)
+app.config["DATABASE"] = db_path
 
-# Database helpers
+# --- Database helpers ---
 def get_db():
     if 'db' not in g:
         g.db = sqlite3.connect(app.config['DATABASE'])
         g.db.row_factory = sqlite3.Row
     return g.db
 
+@app.teardown_appcontext
 def close_db(e=None):
     db = g.pop('db', None)
     if db is not None:
         db.close()
 
-app.teardown_appcontext(close_db)
-
 def init_db():
     db = get_db()
-    # Create tables if not exists
     db.executescript("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,7 +35,6 @@ def init_db():
         email TEXT,
         password TEXT NOT NULL
     );
-
     CREATE TABLE IF NOT EXISTS tasks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
@@ -50,7 +47,7 @@ def init_db():
     """)
     db.commit()
 
-# Decorator
+# --- Decorators ---
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -59,23 +56,27 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# Routes
-#@app.before_first_request
-#def before_first():
-#    init_db()
+# --- Routes ---
+@app.before_request
+def ensure_db_exists():
+    if not os.path.exists(app.config['DATABASE']):
+        init_db()
 
 @app.route('/')
 @login_required
 def index():
     user_id = session['user_id']
-    status = request.args.get('status', 'all')  # all / pending / completed
+    status = request.args.get('status', 'all')
     db = get_db()
-    if status == 'pending':
-        tasks = db.execute("SELECT * FROM tasks WHERE user_id = ? AND status = 'pending' ORDER BY created_at DESC", (user_id,)).fetchall()
-    elif status == 'completed':
-        tasks = db.execute("SELECT * FROM tasks WHERE user_id = ? AND status = 'completed' ORDER BY created_at DESC", (user_id,)).fetchall()
-    else:
-        tasks = db.execute("SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC", (user_id,)).fetchall()
+
+    query = "SELECT * FROM tasks WHERE user_id = ?"
+    params = [user_id]
+    if status in ('pending', 'completed'):
+        query += " AND status = ?"
+        params.append(status)
+    query += " ORDER BY created_at DESC"
+
+    tasks = db.execute(query, params).fetchall()
     return render_template('index.html', tasks=tasks, username=session.get('username'), filter=status)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -84,20 +85,24 @@ def register():
         username = request.form['username'].strip()
         email = request.form['email'].strip()
         password = request.form['password']
+
         if not username or not password:
             flash("Username and password required.", "danger")
             return redirect(url_for('register'))
 
         db = get_db()
         try:
-            db.execute("INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-                       (username, email, generate_password_hash(password)))
+            db.execute(
+                "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+                (username, email, generate_password_hash(password))
+            )
             db.commit()
             flash("Registration successful. Please login.", "success")
             return redirect(url_for('login'))
         except sqlite3.IntegrityError:
             flash("Username already taken.", "danger")
             return redirect(url_for('register'))
+
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -107,6 +112,7 @@ def login():
         password = request.form['password']
         db = get_db()
         user = db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+
         if user and check_password_hash(user['password'], password):
             session.clear()
             session['user_id'] = user['id']
@@ -130,9 +136,11 @@ def add_task():
     if request.method == 'POST':
         title = request.form['title'].strip()
         description = request.form['description'].strip()
+
         if not title:
             flash("Title is required.", "danger")
             return redirect(url_for('add_task'))
+
         db = get_db()
         db.execute("INSERT INTO tasks (title, description, user_id) VALUES (?, ?, ?)",
                    (title, description, session['user_id']))
@@ -145,22 +153,30 @@ def add_task():
 @login_required
 def edit_task(task_id):
     db = get_db()
-    task = db.execute("SELECT * FROM tasks WHERE id = ? AND user_id = ?", (task_id, session['user_id'])).fetchone()
+    task = db.execute(
+        "SELECT * FROM tasks WHERE id = ? AND user_id = ?", (task_id, session['user_id'])
+    ).fetchone()
     if not task:
         flash("Task not found.", "danger")
         return redirect(url_for('index'))
+
     if request.method == 'POST':
         title = request.form['title'].strip()
         description = request.form['description'].strip()
         status = request.form.get('status', 'pending')
+
         if not title:
             flash("Title required.", "danger")
             return redirect(url_for('edit_task', task_id=task_id))
-        db.execute("UPDATE tasks SET title = ?, description = ?, status = ? WHERE id = ? AND user_id = ?",
-                   (title, description, status, task_id, session['user_id']))
+
+        db.execute(
+            "UPDATE tasks SET title = ?, description = ?, status = ? WHERE id = ? AND user_id = ?",
+            (title, description, status, task_id, session['user_id'])
+        )
         db.commit()
         flash("Task updated.", "success")
         return redirect(url_for('index'))
+
     return render_template('add_task.html', task=task)
 
 @app.route('/delete/<int:task_id>', methods=['POST'])
@@ -181,13 +197,11 @@ def complete_task(task_id):
     flash("Task marked as completed.", "success")
     return redirect(url_for('index'))
 
-# Small route to show server healthy (useful for deployment)
 @app.route('/health')
 def health():
     return {"status": "ok"}
 
-if __name__ == '__main__':
-    # create DB if missing (safe)
+if __name__ == "__main__":
     with app.app_context():
         init_db()
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)), debug=False)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
